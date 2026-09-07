@@ -1,0 +1,107 @@
+<?xml version='1.0'?>
+<Obfuscator>
+  <Var name="InPath" value="_release\app" />
+  <Var name="OutPath" value="_release\obf" />
+  <Var name="KeepPublicApi" value="false" />
+  <Var name="HidePrivateApi" value="true" />
+  <Var name="RenameProperties" value="true" />
+  <Var name="RenameEvents" value="true" />
+  <Var name="RenameFields" value="true" />
+  <Var name="UseUnicodeNames" value="true" />
+  <Var name="HideStrings" value="true" />
+  <Var name="OptimizeMethods" value="true" />
+  <Var name="SuppressIldasm" value="true" />
+  <!-- Only our own app assembly is obfuscated. CodeWalker.Core / SharpDX / ImGui.NET stay
+       intact (open-source + reflection-heavy). -->
+  <Module file="$(InPath)\RageLightEditor.dll">
+    <!-- These are (de)serialised by property NAME via System.Text.Json. Renaming their members
+         would produce unreadable files that also break between builds - keep them intact. -->
+    <SkipType name="RageLightEditor.Editor.AppSettings" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- Nested types are NOT covered by their outer type's rule - Cecil names them
+         Outer/Inner - and this one is serialised member-by-member like the rest of the
+         settings file, so it needs its own entry or the release build writes a settings
+         file full of renamed keys that the next release build cannot read back. -->
+    <SkipType name="RageLightEditor.Editor.AppSettings/CinematicPrefs" skipMethods="true"
+              skipStringHiding="true" skipFields="true" skipProperties="true" skipEvents="true" />
+    <SkipType name="RageLightEditor.Editor.ProjectFile" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- The .rlemap map project, same deal: written by property name, and its two nested types
+         carry every field that matters - so all three need entries, not just the outer one. -->
+    <SkipType name="RageLightEditor.Editor.MapProject" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <SkipType name="RageLightEditor.Editor.MapProject/Entry" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <SkipType name="RageLightEditor.Editor.MapProject/Saved" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- List U added two more file formats written by property NAME via System.Text.Json,
+         and every type they reach has to be skipped, not just the outer one: the release
+         build's self-test caught the UV animation clip failing to round-trip because the
+         obfuscator had renamed its members, so it wrote keys nothing could read back. A
+         type serialised by name belongs on this list the day it is written. -->
+    <!-- the .uvanim clip WS-U6 writes -->
+    <SkipType name="RageLightEditor.Editor.UvAnimClip" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- one material's track inside it -->
+    <SkipType name="RageLightEditor.Editor.UvAnimTrack" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- one channel's curve -->
+    <SkipType name="RageLightEditor.Editor.UvAnimCurve" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- one keyframe -->
+    <SkipType name="RageLightEditor.Editor.UvAnimKey" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- the .ypt.audio.json sidecar WS-U1 writes -->
+    <SkipType name="RageLightEditor.Editor.PtfxAudioDoc_U1" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- one positioned emitter in it -->
+    <SkipType name="RageLightEditor.Editor.PtfxAudioEmitter_U1" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- its ambient bed -->
+    <SkipType name="RageLightEditor.Editor.PtfxAudioBed_U1" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- The workspace enum's MEMBER NAMES cross boundaries: WS-T2 keys each section's saved
+         camera by name in settings.json, the DCC bridge puts the workspace name in its
+         handshake, and every RLE_* flag that names a workspace parses one back. Renamed, the
+         release build silently stopped remembering per-section cameras and told Blender its
+         workspace was an em-space. Nested in LightPanel, so it needs its own entry. -->
+    <SkipType name="RageLightEditor.Editor.LightPanel/Space" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- Each section's saved camera. It lives INSIDE settings.json as a list, so its own
+         property names are file format too - renamed, every placement was written under
+         unreadable keys and no section ever found its camera again in the packaged build. -->
+    <SkipType name="RageLightEditor.Editor.SectionCameraPref" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- WS-V5. Found by sweeping every JsonSerializer call site against this list rather than
+         waiting for the next report: the two formats below were writing unreadable keys in
+         every packaged build. The MLO Creator one is the serious half - Dto IS the project
+         file, so saving an interior wrote a document nothing could read back, and the six
+         types it reaches all needed entries of their own.
+         A seqtest check now round-trips both through the same serialiser the app uses, so
+         a format that loses its names fails the build instead of the user's work. -->
+    <!-- the MLO Creator's PROJECT FILE - saving one wrote {} in the release build -->
+    <SkipType name="RageLightEditor.Editor.MloCreatorProject/Dto" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- one room in it -->
+    <SkipType name="RageLightEditor.Editor.MloCreatorProject/RoomDto" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- one portal -->
+    <SkipType name="RageLightEditor.Editor.MloCreatorProject/PortalDto" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- one placed prop -->
+    <SkipType name="RageLightEditor.Editor.MloCreatorProject/EntityDto" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- a position, a corner, a bound -->
+    <SkipType name="RageLightEditor.Editor.MloCreatorProject/V3" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- a rotation -->
+    <SkipType name="RageLightEditor.Editor.MloCreatorProject/V4" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- the assets library's cache of what it found -->
+    <SkipType name="RageLightEditor.Editor.LightPropLibrary/CacheFile" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+    <!-- one prop in that cache -->
+    <SkipType name="RageLightEditor.Editor.LightPropEntry" skipMethods="true" skipStringHiding="true"
+              skipFields="true" skipProperties="true" skipEvents="true" />
+  </Module>
+</Obfuscator>

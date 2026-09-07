@@ -1,0 +1,106 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <PlatformTarget>x64</PlatformTarget>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>RageLightEditor</AssemblyName>
+    <RootNamespace>RageLightEditor</RootNamespace>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <Product>RAGE Tools</Product>
+    <AssemblyTitle>RAGE Tools</AssemblyTitle>
+    <Company>Escobar</Company>
+    <NoWarn>$(NoWarn);CS0618</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SharpDX" Version="4.2.0" />
+    <PackageReference Include="SharpDX.Mathematics" Version="4.2.0" />
+    <PackageReference Include="SharpDX.DXGI" Version="4.2.0" />
+    <PackageReference Include="SharpDX.Direct3D11" Version="4.2.0" />
+    <PackageReference Include="SharpDX.D3DCompiler" Version="4.2.0" />
+    <PackageReference Include="ImGui.NET" Version="1.91.6.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CodeWalker.Core\CodeWalker.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Release single-file: bundle the pre-obfuscated assembly instead of the freshly-compiled one.
+       Enabled only when -p:UseObfuscated=true (never affects normal dev builds). -->
+  <Target Name="InjectObfuscated" AfterTargets="Build" Condition="'$(UseObfuscated)'=='true' And Exists('$(MSBuildProjectDirectory)\..\_release\obf\RageLightEditor.dll')">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\_release\obf\RageLightEditor.dll" DestinationFiles="$(TargetPath)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\_release\obf\RageLightEditor.dll" DestinationFiles="$(IntermediateOutputPath)$(AssemblyName).dll" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
+    <Message Importance="high" Text="[RELEASE] Injected obfuscated RageLightEditor.dll for single-file bundling." />
+  </Target>
+
+  <ItemGroup>
+    <!-- Shaders are embedded into the assembly (loaded by name at runtime) so the release
+         ships as a clean binary with no loose readable .hlsl files. -->
+    <EmbeddedResource Include="Shaders\model.hlsl"><LogicalName>model.hlsl</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\grass.hlsl"><LogicalName>grass.hlsl</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\grasslod.hlsl"><LogicalName>grasslod.hlsl</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\lines.hlsl"><LogicalName>lines.hlsl</LogicalName></EmbeddedResource>
+    <!-- WS-U2: overlays drawn after the tone map, in display colour (Rendering/DisplayOverlay.U2.cs) -->
+    <EmbeddedResource Include="Shaders\overlay_u2.hlsl"><LogicalName>overlay_u2.hlsl</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\corona.hlsl"><LogicalName>corona.hlsl</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\distantlights.hlsl"><LogicalName>distantlights.hlsl</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\mirrorphoto.hlsl"><LogicalName>mirrorphoto.hlsl</LogicalName></EmbeddedResource>
+    <!-- WS-V2: the picture held up in a mirror. Embedded so a fresh install has it, and still
+         overridable by dropping a mirror_photo.png beside the exe. -->
+    <EmbeddedResource Include="Assets\mirror_photo.png"><LogicalName>mirror_photo.png</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\shadowdist.hlsl"><LogicalName>shadowdist.hlsl</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\sky.hlsl"><LogicalName>sky.hlsl</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\clouds.hlsl"><LogicalName>clouds.hlsl</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\postfx.hlsl"><LogicalName>postfx.hlsl</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\lightshaft.hlsl"><LogicalName>lightshaft.hlsl</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\cinematic.hlsl"><LogicalName>cinematic.hlsl</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Shaders\particle.hlsl"><LogicalName>particle.hlsl</LogicalName></EmbeddedResource>
+    <!-- WS-N4: the effect catalogue behind the Particles workspace's library (asset -> effects).
+         Embedded, like the shaders, so the portable build stays one file. -->
+    <EmbeddedResource Include="Data\particles.json"><LogicalName>particles.json</LogicalName></EmbeddedResource>
+    <!-- CodeWalker.Core reads these two off disk. Carrying them inside the exe keeps the portable
+         build a single file; DataFiles.EnsureExtracted writes them out on first run.
+         ShadersGen9Conversion.xml is required for Enhanced Edition (gen9) drawables. -->
+    <EmbeddedResource Include="..\CodeWalker.Core\ShadersGen9Conversion.xml">
+      <LogicalName>ShadersGen9Conversion.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\CodeWalker.Core\strings.txt">
+      <LogicalName>strings.txt</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\logo.png"><LogicalName>logo.png</LogicalName></EmbeddedResource>
+    <!-- The material editor's wordmark, shown at the top of its panel. Embedded rather than
+         shipped loose so the release stays a single clean binary. -->
+    <EmbeddedResource Include="Assets\material_logo.png"><LogicalName>material_logo.png</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\world_logo.png"><LogicalName>world_logo.png</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\mlo_logo.png"><LogicalName>mlo_logo.png</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\rpf_logo.png"><LogicalName>rpf_logo.png</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\particles_logo.png"><LogicalName>particles_logo.png</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\navmesh_logo.png"><LogicalName>navmesh_logo.png</LogicalName></EmbeddedResource>
+    <!-- WS-S2: the Terrain section's wordmark - the user's own RAGE TERRAIN artwork. It shipped
+         in Assets, so it is no longer conditional: a build without it quietly goes back to
+         drawing the amber light mark in the Terrain panel, which is the bug that was reported. -->
+    <EmbeddedResource Include="Assets\terrain_logo.png"><LogicalName>terrain_logo.png</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\animations_logo.png"><LogicalName>animations_logo.png</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\icon.ico"><LogicalName>icon.ico</LogicalName></EmbeddedResource>
+    <!-- WS-U1: the four UI sounds. Synthesised (short sine blips, one filtered noise
+         transient), not sampled, and embedded like the logos so the portable build stays
+         one file - Editor/UiSound.U1.cs reads them by these names. -->
+    <EmbeddedResource Include="Assets\ui_success.wav"><LogicalName>ui_success.wav</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\ui_error.wav"><LogicalName>ui_error.wav</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\ui_invalid.wav"><LogicalName>ui_invalid.wav</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\ui_blocked.wav"><LogicalName>ui_blocked.wav</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\fivem\fxmanifest.lua"><LogicalName>fivem/fxmanifest.lua</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\fivem\client.lua"><LogicalName>fivem/client.lua</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\fivem\server.lua"><LogicalName>fivem/server.lua</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\fivem\html\index.html"><LogicalName>fivem/html/index.html</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\fivem\html\bridge.js"><LogicalName>fivem/html/bridge.js</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="Assets\fivem\RageToolsLive.asi"><LogicalName>fivem/RageToolsLive.asi</LogicalName></EmbeddedResource>
+  </ItemGroup>
+
+</Project>

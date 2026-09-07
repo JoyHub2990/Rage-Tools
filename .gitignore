@@ -1,0 +1,98 @@
+﻿# Build output
+bin/
+obj/
+_release/
+*.user
+*.suo
+.vs/
+# WS-P5: the Blender add-on ships as a source .py; anything Python leaves behind does not
+__pycache__/
+*.pyc
+
+# Release packaging: build scratch stays out, but Download/ is the published build
+# and IS tracked, so the repo itself hands out a runnable copy.
+Versions/
+*.zip
+!Download/*.zip
+RAGE_Light_Editor_V2/
+
+# NEVER publish: the obfuscation map de-obfuscates a shipped build
+Mapping.txt
+
+# A build dropped in the repo ROOT so it can be run and tested straight away.
+# Download/ is the published copy the repo hands out; a second 72 MB exe beside
+# the source is just the same thing again, so it stays local.
+/*.exe
+/ShadersGen9Conversion.xml
+/strings.txt
+
+# Local state, not part of the project
+settings.json
+imgui.ini
+*.lnk
+DebugLog.txt
+
+# Scratch output from the built-in test flags
+light_proxy_test.ydr
+light_test_scene.ydr
+*.bak
+
+# Game-derived data belongs to Rockstar - it is read from the user's own
+# install at runtime and must not be redistributed here
+timecycle_mods_*.xml
+TestAssets/
+*.ydr
+*.yft
+*.ytd
+*.ytyp
+*.ymap
+*.rpf
+
+# Written by the crash reporter next to the exe
+crash.log
+
+# The whole-archive texture index, rebuilt from the user's own install
+texindex_*.bin
+
+# Reference source read while working, not part of this project and not ours to
+# redistribute: Unity's Cinemachine ships under the Unity Companion License, and 27 MB
+# of someone else's package has no business in this repo's history.
+com.unity.cinemachine-main/
+*.zip
+!Download/*.zip
+
+# The build script trims Download/ to the exe, the zip and BUILD.txt; anything else in
+# there is what a test run of the published copy left behind.
+Download/session.log
+Download/strings.txt
+Download/ShadersGen9Conversion.xml
+Download/settings.json
+Download/imgui.ini
+#the DCC bridge test writes this beside the exe when --seqtest runs there
+rage_selection.json
+Download/rage_selection.json
+
+# More of what a run leaves beside the exe. Same class as crash.log and session.log:
+# one person's session, rewritten every launch, of no use to anyone reading the source.
+device-lost.log
+rescue.rlep
+light_test_scene.ydr
+light_proxy_test.ydr
+# runtime log written beside whichever exe is running - never source
+session.log
+
+# agent worktrees
+.claude/
+captures/
+
+#WS-V17: test fixtures the user drops beside the build - GTA assets, never ours to publish
+clip@*.ycd
+prop_*.ydr
+release-drive.txt
+
+# WS-U18: runtime state and game-derived caches written beside the exe, plus the release copy in the repo root
+lightprops.json
+light_presets.json
+terraintex_*.bin
+RageLightEditor/Assets/fivem/RageToolsLive.log
+/RAGE Tools/

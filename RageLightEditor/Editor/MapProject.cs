@@ -1,0 +1,268 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using CodeWalker.GameFiles;
+
+namespace RageLightEditor.Editor
+{
+    public class MapProject
+    {
+
+        public class Entry
+        {
+            [JsonPropertyName("path")] public string Path { get; set; }
+            [JsonPropertyName("fromGame")] public bool FromGame { get; set; }
+            [JsonIgnore] public YmapFile Ymap;
+            [JsonIgnore] public YtypFile Ytyp;
+            [JsonIgnore] public bool Dirty;
+
+            public string DisplayName => System.IO.Path.GetFileName(Path ?? "") is { Length: > 0 } n
+                ? n : (Path ?? "(unnamed)");
+        }
+
+        public string Name = "Untitled";
+        public string ProjectPath;
+        public readonly List<Entry> Ymaps = new List<Entry>();
+        public readonly List<Entry> Ytyps = new List<Entry>();
+
+        public string LastStatus = "";
+        public bool Dirty;
+
+        private class Saved
+        {
+            [JsonPropertyName("name")] public string Name { get; set; }
+            [JsonPropertyName("ymaps")] public List<Entry> Ymaps { get; set; } = new List<Entry>();
+            [JsonPropertyName("ytyps")] public List<Entry> Ytyps { get; set; } = new List<Entry>();
+        }
+
+        public void Clear()
+        {
+            Name = "Untitled";
+            ProjectPath = null;
+            Ymaps.Clear();
+            Ytyps.Clear();
+            Dirty = false;
+            LastStatus = "new project";
+        }
+
+        public bool SaveProject(string path)
+        {
+            try
+            {
+                var s = new Saved { Name = Name };
+                s.Ymaps.AddRange(Ymaps);
+                s.Ytyps.AddRange(Ytyps);
+                var json = JsonSerializer.Serialize(s, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(path, json);
+                ProjectPath = path;
+                Name = System.IO.Path.GetFileNameWithoutExtension(path);
+                Dirty = false;
+                LastStatus = "saved " + System.IO.Path.GetFileName(path);
+                return true;
+            }
+            catch (Exception ex) { LastStatus = "save failed: " + ex.Message; return false; }
+        }
+
+        public bool LoadProject(string path)
+        {
+            try
+            {
+                var s = JsonSerializer.Deserialize<Saved>(File.ReadAllText(path));
+                if (s == null) { LastStatus = "not a project file"; return false; }
+                Clear();
+                Name = s.Name ?? System.IO.Path.GetFileNameWithoutExtension(path);
+                ProjectPath = path;
+                if (s.Ymaps != null) Ymaps.AddRange(s.Ymaps);
+                if (s.Ytyps != null) Ytyps.AddRange(s.Ytyps);
+                LastStatus = $"opened {Ymaps.Count} ymap(s), {Ytyps.Count} ytyp(s)";
+                return true;
+            }
+            catch (Exception ex) { LastStatus = "open failed: " + ex.Message; return false; }
+        }
+
+        public Entry AddYmap(YmapFile y, string path, bool fromGame)
+        {
+            if (y == null) return null;
+            var existing = Ymaps.FirstOrDefault(e => ReferenceEquals(e.Ymap, y));
+            if (existing != null) return existing;
+            var e = new Entry { Path = path, FromGame = fromGame, Ymap = y };
+            Ymaps.Add(e);
+            Dirty = true;
+            return e;
+        }
+
+        public Entry AddYtyp(YtypFile t, string path, bool fromGame)
+        {
+            if (t == null) return null;
+            var existing = Ytyps.FirstOrDefault(e => ReferenceEquals(e.Ytyp, t));
+            if (existing != null) return existing;
+            var e = new Entry { Path = path, FromGame = fromGame, Ytyp = t };
+            Ytyps.Add(e);
+            Dirty = true;
+            return e;
+        }
+
+        public void Remove(Entry e)
+        {
+            if (e == null) return;
+            Ymaps.Remove(e);
+            Ytyps.Remove(e);
+            Dirty = true;
+        }
+
+        public string SaveManifest(string path)
+        {
+            try
+            {
+                var xml = BuildManifest(out int skipped, out int ytypCount);
+                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path) ?? ".");
+                File.WriteAllText(path, xml, new UTF8Encoding(false));
+                LastStatus = $"wrote {System.IO.Path.GetFileName(path)} " +
+                             $"({Ymaps.Count - skipped} ymap(s), {ytypCount} ytyp(s))" +
+                             (skipped > 0 ? $" - {skipped} unnamed ymap(s) LEFT OUT" : "");
+                return path;
+            }
+            catch (Exception ex) { LastStatus = "manifest failed: " + ex.Message; return null; }
+        }
+
+        public string BuildManifest(out int skipped, out int ytypCount)
+        {
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+                sb.AppendLine("<CPackFileMetaData>");
+
+                var ytypNames = Ytyps.Where(e => e.Ytyp != null)
+                                     .Select(e => NameOfYtyp(e))
+                                     .Where(n => !string.IsNullOrEmpty(n))
+                                     .Distinct(StringComparer.OrdinalIgnoreCase)
+                                     .ToList();
+
+                sb.AppendLine("  <imapDependencies_2>");
+                skipped = 0;
+                foreach (var e in Ymaps)
+                {
+                    var y = e.Ymap;
+                    var nm = NameOfYmap(e);
+                    if (string.IsNullOrEmpty(nm)) { skipped++; continue; }
+                    sb.AppendLine("    <Item>");
+                    sb.AppendLine($"      <imapName>{Esc(nm)}</imapName>");
+                    var parent = y == null ? "" : y.CMapData.parent.ToString();
+                    if (parent == "0" || parent == "0x00000000") parent = "";
+                    sb.AppendLine($"      <manifestFlags/>");
+                    sb.AppendLine("      <itypDepArray>");
+                    foreach (var t in ytypNames) sb.AppendLine($"        <Item>{Esc(t)}</Item>");
+                    sb.AppendLine("      </itypDepArray>");
+                    if (!string.IsNullOrEmpty(parent))
+                        sb.AppendLine($"      <parentImap>{Esc(parent)}</parentImap>");
+                    sb.AppendLine("    </Item>");
+                }
+                sb.AppendLine("  </imapDependencies_2>");
+
+                sb.AppendLine("  <itypDependencies_2/>");
+
+                sb.AppendLine("</CPackFileMetaData>");
+                ytypCount = ytypNames.Count;
+                return sb.ToString();
+            }
+        }
+
+        private static string NameOfYmap(Entry e)
+        {
+            var n = e.Ymap?.Name;
+            if (string.IsNullOrEmpty(n)) n = e.Ymap?.RpfFileEntry?.Name;
+            if (string.IsNullOrEmpty(n)) n = System.IO.Path.GetFileNameWithoutExtension(e.Path ?? "");
+            return StripExt(n, ".ymap");
+        }
+
+        private static string NameOfYtyp(Entry e)
+        {
+            var n = e.Ytyp?.Name;
+            if (string.IsNullOrEmpty(n)) n = e.Ytyp?.RpfFileEntry?.Name;
+            if (string.IsNullOrEmpty(n)) n = System.IO.Path.GetFileNameWithoutExtension(e.Path ?? "");
+            return StripExt(n, ".ytyp");
+        }
+
+        private static string StripExt(string n, string ext) =>
+            string.IsNullOrEmpty(n) ? n
+            : (n.EndsWith(ext, StringComparison.OrdinalIgnoreCase) ? n.Substring(0, n.Length - ext.Length) : n);
+
+        private static string Esc(string s) =>
+            (s ?? "").Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
+        public string SaveYtyp(Entry e, string folder)
+        {
+            if (e?.Ytyp == null) { LastStatus = "no ytyp"; return null; }
+            try
+            {
+                Directory.CreateDirectory(folder);
+                var name = NameOfYtyp(e);
+                if (string.IsNullOrEmpty(name)) name = "edited";
+                var p = System.IO.Path.Combine(folder, name + ".ytyp");
+                var data = e.Ytyp.Save();
+                if (data == null || data.Length == 0) { LastStatus = name + ": nothing written"; return null; }
+                File.WriteAllBytes(p, data);
+                e.Dirty = false;
+                LastStatus = $"wrote {name}.ytyp ({data.Length / 1024} KB)";
+                return p;
+            }
+            catch (Exception ex) { LastStatus = "ytyp save failed: " + ex.Message; return null; }
+        }
+
+        public static string DescribeArchetype(Archetype a)
+        {
+            if (a == null) return "";
+            var kind = a is MloArchetype ? "interior (MLO)"
+                     : a is TimeArchetype ? "time-based"
+                     : "base";
+            return $"{kind}  ·  {a.DrawableDict.ToCleanString()}";
+        }
+
+        public static float GetLodDist(Archetype a) => a?._BaseArchetypeDef.lodDist ?? 0.0f;
+
+        public static void SetLodDist(Archetype a, float v)
+        {
+            if (a == null) return;
+            var d = a._BaseArchetypeDef;
+            d.lodDist = Math.Max(v, 0.0f);
+            a._BaseArchetypeDef = d;
+            a.LodDist = d.lodDist;
+        }
+
+        public static uint GetFlags(Archetype a) => a?._BaseArchetypeDef.flags ?? 0u;
+
+        public static void SetFlags(Archetype a, uint v)
+        {
+            if (a == null) return;
+            var d = a._BaseArchetypeDef;
+            d.flags = v;
+            a._BaseArchetypeDef = d;
+        }
+
+        public static float GetHdTextureDist(Archetype a) => a?._BaseArchetypeDef.hdTextureDist ?? 0.0f;
+
+        public static void SetHdTextureDist(Archetype a, float v)
+        {
+            if (a == null) return;
+            var d = a._BaseArchetypeDef;
+            d.hdTextureDist = Math.Max(v, 0.0f);
+            a._BaseArchetypeDef = d;
+        }
+
+        public static string DescribeMlo(MloArchetype m)
+        {
+            if (m == null) return "";
+            int rooms = m.rooms?.Length ?? 0;
+            int portals = m.portals?.Length ?? 0;
+            int sets = m.entitySets?.Length ?? 0;
+            int ents = m.entities?.Length ?? 0;
+            return $"{rooms} room(s), {portals} portal(s), {sets} entity set(s), {ents} entities";
+        }
+    }
+}
+

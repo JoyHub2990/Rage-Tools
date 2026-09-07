@@ -54,3 +54,44 @@ RAGE Tools is developed with reference to existing GTA V modding research and to
 RAGE Tools is an independent project and is **not affiliated with Rockstar Games, CodeWalker, or Sollumz**.
 
 <img width="512" height="512" alt="Rage_R_logo" src="https://github.com/user-attachments/assets/7b30646d-39fb-4680-9e54-3a5a5169b699" />
+
+## Source code
+
+The full source lives in this repository:
+
+```
+RageLightEditor.sln
+RageLightEditor/        the application (C# / .NET 8, WinForms + SharpDX D3D11 + Dear ImGui)
+CodeWalker.Core/        resource formats and lighting math (dexyfex, MIT)
+RageTools.Mcp/          the local API server other tools talk to
+native/ragetools_asi/   the RageToolsLive FiveM plugin (C++)
+docs/                   usage notes, FiveM live linking, research notes
+build-release.ps1       the release build (obfuscated, self-tested, zipped)
+```
+
+Build it with the .NET 8 SDK on Windows:
+
+```
+dotnet build RageLightEditor.sln -c Release
+```
+
+The exe lands in `RageLightEditor/bin/Release/net8.0-windows/`. No game data ships with the source: the tool reads your own GTA V install at runtime.
+
+## Contributing
+
+`main` only takes pull requests. Fork the repository, make your change on a branch, and open a pull request against `main`; it is reviewed and merged from there. Keep a pull request to one change so it can be read and tested on its own.
+
+## License
+
+This project is provided as an open-source development tool for the FiveM / Cfx.re community.
+
+* Personal and commercial use is allowed.
+* You are free to modify, edit, and adapt the source code.
+* You may use the tool in personal or commercial development projects.
+* You may not redistribute, rebrand, or resell a modified or unmodified version of this project as your own product.
+* You may not sell access to, sublicense, or commercially redistribute modified versions of this project.
+* The original project and its source code must remain properly credited when redistributed for permitted purposes.
+
+In short: use it, modify it, and build with it - but don't take a modified version, rebrand it, and sell it as your own.
+
+The full text is in [`LICENSE`](LICENSE).
