@@ -40,6 +40,7 @@ namespace RageLightEditor.Editor
         private bool RpfRowSelected_O1(in RpfExplorer.Row r)
         {
             if (!rpfHasSelRow) return false;
+            if (InMulti_U19(r)) return true;
             if (r.Entry != null || rpfSelRow.Entry != null) return ReferenceEquals(r.Entry, rpfSelRow.Entry);
             return string.Equals(r.Path, rpfSelRow.Path, StringComparison.OrdinalIgnoreCase) &&
                    string.Equals(r.Name, rpfSelRow.Name, StringComparison.OrdinalIgnoreCase);
@@ -51,6 +52,8 @@ namespace RageLightEditor.Editor
             rpfHasSelRow = true;
             rpfSelNode = Rpf.Current;
             Rpf.Selected = r.Entry;
+            rpfMulti_U19.Clear();
+            rpfMulti_U19.Add(r);
         }
 
         private void ClearRpfSelection_O1()
@@ -58,6 +61,8 @@ namespace RageLightEditor.Editor
             rpfHasSelRow = false;
             rpfSelNode = Rpf.Current;
             Rpf.Selected = null;
+            rpfMulti_U19.Clear();
+            rpfAnchor_U19 = -1;
         }
 
         private void ForgetStaleRpfSelection_O1()
@@ -145,10 +150,14 @@ namespace RageLightEditor.Editor
             ImGui.BeginDisabled(!haveSel);
             if (ImGui.Button("Copy")) ApplyRpf_O1(RpfEdit.Copy(SelectedRpfRows_O1()));
             ImGui.SameLine(0, 4);
-            if (ImGui.Button("Copy path"))
+            if (ImGui.Button(RpfMultiSelected_U19 ? "Copy paths" : "Copy path"))
             {
-                ImGui.SetClipboardText(rpfSelRow.Path ?? "");
-                RpfStatus = "copied " + (rpfSelRow.Path ?? "");
+                if (RpfMultiSelected_U19) CopyRpfPaths_U19(SelectedRpfRows_O1(), false);
+                else
+                {
+                    ImGui.SetClipboardText(rpfSelRow.Path ?? "");
+                    RpfStatus = "copied " + (rpfSelRow.Path ?? "");
+                }
             }
             ImGui.EndDisabled();
 
@@ -171,10 +180,14 @@ namespace RageLightEditor.Editor
             ImGui.EndDisabled();
 
             RpfToolbarFit_V42(150);
-            ImGui.BeginDisabled(!RpfEditMode || !haveSel || searching);
+            ImGui.BeginDisabled(!RpfEditMode || !haveSel || searching || RpfMultiSelected_U19);
             if (ImGui.Button("Rename")) OpenRpfPrompt_O1(RpfPromptKind.Rename, rpfSelRow.Name);
+            ImGui.EndDisabled();
+            if (RpfMultiSelected_U19 && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                ImGui.SetTooltip("Renaming is one item at a time.");
             ImGui.SameLine(0, 4);
-            if (ImGui.Button("Delete")) AskDeleteRpf_O1();
+            ImGui.BeginDisabled(!RpfEditMode || !haveSel || searching);
+            if (ImGui.Button(RpfMultiSelected_U19 ? $"Delete {RpfSelectedCount_U19:N0}" : "Delete")) AskDeleteRpf_O1();
             ImGui.EndDisabled();
 
             var defragTarget = SelectedArchive_O1();
@@ -203,8 +216,9 @@ namespace RageLightEditor.Editor
 
         private List<RpfExplorer.Row> SelectedRpfRows_O1()
         {
-            var list = new List<RpfExplorer.Row>(1);
-            if (rpfHasSelRow) list.Add(rpfSelRow);
+            var list = new List<RpfExplorer.Row>(rpfMulti_U19.Count + 1);
+            if (rpfMulti_U19.Count > 0) list.AddRange(rpfMulti_U19);
+            else if (rpfHasSelRow) list.Add(rpfSelRow);
             return list;
         }
 
@@ -357,6 +371,7 @@ namespace RageLightEditor.Editor
 
         private void AskDeleteRpf_O1()
         {
+            if (RpfMultiSelected_U19) { AskDeleteRpfMany_U19(); return; }
             var item = RpfSelectedItem_O1();
             if (!item.Valid) return;
             string extra = RpfEdit.DeleteNeedsConfirm(item, out var what) ? what : item.Name;

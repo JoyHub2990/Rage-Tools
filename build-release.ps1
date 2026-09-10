@@ -43,13 +43,6 @@ if (-not (Test-Path $binDll)) { throw "built assembly not found at $binDll" }
 
 if (-not $SkipObfuscate) {
     Step "2/5 obfuscate"
-
-    # Ensure Obfuscar is installed globally...
-    if (-not (Get-Command "obfuscar.console" -ErrorAction SilentlyContinue)) {
-        Write-Host "Obfuscar is not installed. Installing Obfuscar.GlobalTool..." -ForegroundColor Yellow
-        dotnet tool install --global Obfuscar.GlobalTool
-    }
-    
     if (Test-Path $app) { Remove-Item $app -Recurse -Force }
     New-Item -ItemType Directory -Force $app | Out-Null
     Copy-Item $binDll (Join-Path $app "RageLightEditor.dll") -Force
@@ -176,12 +169,6 @@ try {
 if (Test-Path $asi) { Copy-Item $asi (Join-Path $dl "RageToolsLive.asi") -Force }
 $keep = @("RAGE Tools.exe", "RAGE_Tools_Portable.zip", "BUILD.txt", "RageToolsLive.asi")
 Get-ChildItem $dl -File | Where-Object { $keep -notcontains $_.Name } | Remove-Item -Force
-
-# Fallback: Create initial release-version.txt if it doesn't exist...
-$verFile = Join-Path $root "release-version.txt"
-if (-not (Test-Path $verFile)) {
-    Set-Content $verFile "0" -Encoding ascii
-}
 
 # a build stamp, so the published copy can be told apart from the one before it at a glance
 $stamp = @(

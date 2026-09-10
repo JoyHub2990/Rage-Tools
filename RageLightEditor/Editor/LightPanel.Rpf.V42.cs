@@ -168,6 +168,7 @@ namespace RageLightEditor.Editor
                 DrawRpfBackgroundMenu_V46();
                 ImGui.EndTable();
             }
+            RpfListKeys_U19();
             EndRpfReveal_U1();
             ImGui.PopStyleColor(7);
             ImGui.PopStyleVar();
@@ -179,7 +180,14 @@ namespace RageLightEditor.Editor
                 : (Rpf.Filter.Length > 0
                     ? $"{rows.Count:N0} of {Rpf.RowTotal:N0} entries"
                     : $"{Rpf.RowTotal:N0} entries"));
-            if (rpfHasSelRow)
+            if (RpfMultiSelected_U19)
+            {
+                ImGui.SameLine();
+                ImGui.TextDisabled("|");
+                ImGui.SameLine();
+                ImGui.TextUnformatted(RpfSelectionSummary_U19());
+            }
+            else if (rpfHasSelRow)
             {
                 ImGui.SameLine();
                 ImGui.TextDisabled("|");
@@ -205,7 +213,7 @@ namespace RageLightEditor.Editor
                                  ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowDoubleClick,
                                  new Vector2(0, rowH)))
             {
-                SelectRpfRow_O1(r);
+                ClickRpfRow_U19(r, i);
                 if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left)) ActivateRpfRow_N4(r);
             }
             RpfRowRect_T4(r);
@@ -214,7 +222,7 @@ namespace RageLightEditor.Editor
                 ImGui.SetTooltip(r.Path);
             if (ImGui.BeginPopupContextItem("##rowctx"))
             {
-                SelectRpfRow_O1(r);
+                if (!RpfRowSelected_O1(r)) SelectRpfRow_O1(r);
                 DrawRpfRowMenu_N4(r);
                 ImGui.EndPopup();
             }

@@ -13,6 +13,7 @@ namespace RageLightEditor
 
         private void ServiceRpfDragOut_V55()
         {
+            if (ServiceRpfDragOutMany_U19()) return;
             var p = panel;
             if (p?.RequestRpfDragOut_V55 == null || rpfDragOutBusy_V55) return;
             var r = p.RequestRpfDragOut_V55.Value;

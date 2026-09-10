@@ -304,6 +304,7 @@ namespace RageLightEditor.Editor
 
         private void DrawRpfRowMenu_N4(in RpfExplorer.Row r)
         {
+            if (RpfMultiSelected_U19) { DrawRpfMultiMenu_U19(); return; }
             var fe = r.Entry as RpfFileEntry;
             string kind = RpfExplorer.ViewKindOf(r.Entry);
             if (r.IsFolder)
@@ -346,6 +347,7 @@ namespace RageLightEditor.Editor
         private void DrawRpfRight_N4()
         {
             ImGui.TextDisabled("SELECTED");
+            if (RpfMultiSelected_U19) { DrawRpfMultiSelected_U19(); return; }
             if (rpfHasSelRow && rpfSelRow.IsFs) { DrawRpfFsSelected_O1(); return; }
             var e = Rpf.Selected;
             if (e == null)

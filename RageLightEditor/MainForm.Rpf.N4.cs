@@ -109,6 +109,7 @@ namespace RageLightEditor
             if (p.RequestRpfDiskConvertMany_V52 != null)
             { var dm = p.RequestRpfDiskConvertMany_V52; p.RequestRpfDiskConvertMany_V52 = null; DoRpfDiskConvertMany_V52(dm); }
             ServiceRpfDragOut_V55();
+            ServiceRpfMulti_U19();
 
             if (p.RequestRpfExtract != null)
             {

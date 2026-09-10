@@ -6964,6 +6964,7 @@ namespace RageLightEditor
                 SeqTest_RpfDiskXmlHex_V42(Check);
                 SeqTest_RpfTreeDrop_V43(Check);
                 SeqTest_RpfSideButtons_U9(Check);
+                SeqTest_Rpf_U19(Check);
                 SeqTest_LodLightsLit_V48(Check);
                 SeqTest_ConvertXmlCli_V49(Check);
                 SeqTest_RpfDiskConvert_V52(Check);

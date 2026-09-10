@@ -52,7 +52,8 @@ namespace RageLightEditor.Editor
             if (r.IsFolder && !r.IsFs) return;
             if (!ImGui.IsItemActive() || !ImGui.IsMouseDragging(ImGuiMouseButton.Left, 14f)) return;
             rpfDragOutArmed_V55 = true;
-            RequestRpfDragOut_V55 = r;
+            if (RpfMultiSelected_U19 && InMulti_U19(r)) RequestRpfDragOutMany_U19 = SelectedRpfRows_O1();
+            else RequestRpfDragOut_V55 = r;
         }
 
         private void RpfCreateMenuItems_V46()

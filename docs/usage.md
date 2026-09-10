@@ -183,6 +183,17 @@ around — the light workspace leads with the light list and its parameters, the
 leads with the material list and its textures, and each keeps the other available (lights collapse
 into a section in the material workspace, materials into the surface you click).
 
+### RPF explorer
+
+The **RPF** workspace walks the install - folders, loose files and `.rpf` archives, which open
+like folders - and any folder you drop on its tree. Click a row to select it; **Ctrl+click** adds
+or removes one, **Shift+click** takes a range, **Ctrl+A** everything listed (a search result too).
+With several rows selected the side panel and the right-click menu work on all of them: **Extract**
+into one folder (files flat, folders and archives with their layout), **Export as XML**, **Copy** for
+Paste elsewhere, **Copy paths**, **Convert** XML files to game files, and in edit mode **Delete** after
+one question (Ctrl+C and Delete do the same from the keyboard). Dragging a selected row out drops the
+whole selection on the desktop or into Explorer. Rename stays one item at a time.
+
 ### Light prop library
 
 The **Library** tab (bottom of the left panel) is a catalogue of every prop that has lights
