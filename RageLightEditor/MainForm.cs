@@ -6941,6 +6941,7 @@ namespace RageLightEditor
                 SeqTest_ModsDlc_V21(Check);
                 SeqTest_Heightmap_V21(Check);
                 SeqTest_Fur_V21(Check);
+                SeqTest_Fur_U20(Check);
                 SeqTest_RpfExtras_V22(Check);
                 SeqTest_RpfV23(Check);
                 SeqTest_MaterialReset_V24(Check);

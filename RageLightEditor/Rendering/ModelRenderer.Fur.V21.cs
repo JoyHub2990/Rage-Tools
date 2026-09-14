@@ -19,9 +19,13 @@ namespace RageLightEditor.Rendering
         {
             if (!IsFurShader_V21(shader?.Name.ToString())) return;
 
-            if (mesh.FurLayerParams == Vector4.Zero) mesh.FurLayerParams = new Vector4(0.012f, 0.001f, 0.001f, 0.7f);
-            if (mesh.FurAlphaDistance == Vector2.Zero) mesh.FurAlphaDistance = new Vector2(15f, 25f);
-            if (mesh.FurUvScales == Vector4.Zero) mesh.FurUvScales = new Vector4(1.25f, 1f, 0.5f, 1f);
+            if (mesh.FurLayerParams == Vector4.Zero) mesh.FurLayerParams = FurMath_U20.DefaultLayerParams;
+            if (mesh.FurAlphaDistance == Vector2.Zero) mesh.FurAlphaDistance = FurMath_U20.DefaultAlphaDistance;
+            if (mesh.FurUvScales == Vector4.Zero) mesh.FurUvScales = FurMath_U20.DefaultUvScales;
+            if (mesh.FurShadow03 == Vector4.Zero && mesh.FurShadow47 == Vector4.Zero) { mesh.FurShadow03 = FurMath_U20.DefaultShadow03; mesh.FurShadow47 = FurMath_U20.DefaultShadow47; }
+            if (mesh.FurAlphaClip03 == Vector4.Zero && mesh.FurAlphaClip47 == Vector4.Zero) { mesh.FurAlphaClip03 = FurMath_U20.DefaultAlphaClip03; mesh.FurAlphaClip47 = FurMath_U20.DefaultAlphaClip47; }
+            ReadFurTextures_U20(mesh, embeddedDict);
+            if (FurMath_U20.IsLodShader(shader.Name.ToString())) { mesh.IsFur = false; return; }
 
             int found = 0;
             var foundTex = furDbg_V21 ? new GameTexture[4] : null;
@@ -75,6 +79,7 @@ namespace RageLightEditor.Rendering
 
             mesh.IsFur = found > 0;
             if (!mesh.IsFur) return;
+            mesh.FurLayerParams = new Vector4(Math.Max(mesh.FurLayerParams.X, 0.0f), mesh.FurLayerParams.Y, mesh.FurLayerParams.Z, mesh.FurLayerParams.W);
 
             mesh.FurLayers = Math.Max(1, Math.Min(8, mesh.FurLayers == 0 ? 8 : mesh.FurLayers));
         }

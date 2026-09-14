@@ -116,6 +116,8 @@ cbuffer ObjectVars : register(b1)
 
     float4 FurParams;
     float4 FurParams2;
+    float4 FurParams3;
+    float4 FurParams4;
     uint4 MeshLightIndices[16];
 }
 
@@ -182,6 +184,8 @@ Texture2D FurCombo0 : register(t31);
 Texture2D FurCombo1 : register(t32);
 Texture2D FurCombo2 : register(t33);
 Texture2D FurCombo3 : register(t34);
+Texture2D FurMaskTex : register(t35);
+Texture2D FurHfTex : register(t36);
 
 Texture2D ReflectionTex0 : register(t29);
 Texture2D ReflectionTex1 : register(t30);
@@ -278,11 +282,16 @@ PS_Input VSMain(VS_Input input)
 
     if (FurParams.w > 0.0)
     {
-        float3 furN = normalize(mul(float4(input.Normal, 0.0), World).xyz);
-        if (FurParams2.w < -50.0)
-            wpos.xyz += furN * (-FurParams.w * saturate(1.0 - input.Tangent.w));
+        if (FurParams2.w >= 0.0)
+            wpos = mul(float4(input.Position + input.Normal * FurParams.x, 1.0), World);
         else
-            wpos.xyz += furN * (FurParams.x * FurParams.w);
+        {
+            float3 furN = normalize(mul(float4(input.Normal, 0.0), World).xyz);
+            if (FurParams2.w < -50.0)
+                wpos.xyz += furN * (-FurParams.w * saturate(1.0 - input.Tangent.w));
+            else
+                wpos.xyz += furN * (FurParams.x * FurParams.w);
+        }
     }
     o.WorldPos = wpos.xyz;
     o.Pos = mul(wpos, ViewProj);
@@ -849,6 +858,14 @@ float3 GameOceanBump(float2 worldXY, float t)
     return float3(bump, OceanRippleBumpiness);
 }
 
+float Bayer8_U20(float2 pos)
+{
+    uint2 p = uint2(pos) & 7;
+    uint x = p.x ^ p.y;
+    uint v = ((x & 1) << 5) | ((p.y & 1) << 4) | ((x & 2) << 2) | ((p.y & 2) << 1) | ((x & 4) >> 1) | ((p.y & 4) >> 2);
+    return (v + 0.5) / 64.0;
+}
+
 float4 PSMain(PS_Input input, bool isFrontFace : SV_IsFrontFace) : SV_TARGET
 {
 
@@ -859,59 +876,7 @@ float4 PSMain(PS_Input input, bool isFrontFace : SV_IsFrontFace) : SV_TARGET
         clip(FadeAlpha - (bayer[fpx.y * 4 + fpx.x] + 0.5) / 16.0);
     }
 
-    if (FurParams.w > 0.0)
-    {
-        float2 furUV = input.UV0 * FurParams2.xy;
-        const float fbayer[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
-        uint2 fpx = uint2(input.Pos.xy) & 3;
-        float dither = (fbayer[fpx.y * 4 + fpx.x] + 0.5) / 16.0;
-
-        if (FurParams2.w < -50.0)
-        {
-            float4 n = FurCombo0.Sample(LinearSampler, furUV);
-            float hRgb = max(n.r, dot(n.rgb, float3(0.299, 0.587, 0.114)));
-            float height = n.a >= 0.996 ? hRgb : n.a;
-            float tip = saturate(input.Tangent.w);
-            float3 nBw = mul(float4(input.Colour.rgb * 2.0 - 1.0, 0.0), World).xyz;
-            nBw = nBw / max(length(nBw), 0.0001);
-            float3 edgeN = input.Tangent.xyz + nBw;
-            float lenN = length(edgeN);
-            edgeN = lenN > 0.0001 ? edgeN / lenN : input.Tangent.xyz;
-            float3 toEye = normalize(CameraPos.xyz - input.WorldPos);
-            float sil = saturate((0.38 - abs(dot(edgeN, toEye))) / 0.30);
-            float alpha = height * sil * (1.0 - tip * tip * 0.8) * saturate(FurParams2.z);
-            clip(alpha - max(dither, 0.12));
-        }
-        else
-        {
-            float height;
-            if (FurParams2.w < 0.0)
-            {
-                float4 n = FurCombo0.Sample(LinearSampler, furUV);
-                float hRgb = max(n.r, dot(n.rgb, float3(0.299, 0.587, 0.114)));
-                height = n.a >= 0.996 ? hRgb : n.a;
-            }
-            else
-            {
-                int slice = (int)FurParams2.w;
-                float4 comb = slice < 2 ? FurCombo0.Sample(LinearSampler, furUV)
-                            : slice < 4 ? FurCombo1.Sample(LinearSampler, furUV)
-                            : slice < 6 ? FurCombo2.Sample(LinearSampler, furUV)
-                                        : FurCombo3.Sample(LinearSampler, furUV);
-
-                height = (slice & 1) == 0 ? comb.g : comb.a;
-            }
-
-            float thr = FurParams.y + (1.0 - FurParams2.z) * 0.5;
-            clip(height - thr);
-            if (FurParams.y >= 0.0)
-            {
-                float shellT = FurParams.x <= 0.0 ? FurParams.x + 1.0 : FurParams.x;
-                float alpha = saturate((height - thr) * 6.0) * (1.0 - 0.6 * shellT * shellT);
-                clip(alpha - dither * 0.95);
-            }
-        }
-    }
+    float furShade = 1.0;
 
     if (RenderMode == 3)
     {
@@ -951,10 +916,81 @@ float4 PSMain(PS_Input input, bool isFrontFace : SV_IsFrontFace) : SV_TARGET
     }
 
     float2 uv = AnimateUVs(input.UV0);
+    bool grassFur = FurParams.w > 0.0 && FurParams2.w >= 0.0;
+    if (grassFur) uv = input.UV0 * FurParams2.x;
 
     float4 diffuse = HasDiffuseTex ? DiffuseTex.Sample(LinearSampler, uv) : MatDiffuse;
 
     if (HasDiffuseTex == 1) diffuse.rgb = SrgbToLinear(diffuse.rgb);
+
+    if (FurParams.w > 0.0)
+    {
+        const float fbayer[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
+        uint2 fpx = uint2(input.Pos.xy) & 3;
+        float dither = (fbayer[fpx.y * 4 + fpx.x] + 0.5) / 16.0;
+        if (grassFur)
+        {
+            float cpv = saturate(input.Colour.a);
+            if (FurParams4.y > 0.5) cpv *= FurMaskTex.Sample(LinearSampler, input.UV1).x;
+            float3 toCam = CameraPos.xyz - input.WorldPos;
+            float dist2 = dot(toCam, toCam);
+            float fadeAlpha = saturate((FurParams3.y - dist2) / max(FurParams3.y - FurParams3.x, 0.001));
+            if (FurParams2.z > 0.5) clip(fadeAlpha - Bayer8_U20(input.Pos.xy));
+            float2 uvH = input.UV0 * FurParams2.y;
+            int layer = (int)(FurParams2.w + 0.5);
+            int slot = layer >> 1;
+            float4 comb = slot == 0 ? FurCombo0.SampleBias(LinearSampler, uvH, 1.15)
+                        : slot == 1 ? FurCombo1.SampleBias(LinearSampler, uvH, 1.15)
+                        : slot == 2 ? FurCombo2.SampleBias(LinearSampler, uvH, 1.15)
+                                    : FurCombo3.SampleBias(LinearSampler, uvH, 1.15);
+            float height = (layer & 1) == 0 ? comb.g : comb.a;
+            float clipLevel = lerp(0.01, FurParams.y, saturate(cpv * 2.0));
+            clip(height * cpv - clipLevel);
+            float shade = lerp(FurParams3.z, FurParams.z, fadeAlpha);
+            furShade = lerp(FurParams3.z, shade, cpv);
+            if (FurParams4.z > 0.5)
+            {
+                float3 hf = FurHfTex.Sample(LinearSampler, input.Colour1.xy * FurParams4.x).rgb;
+                if (FurParams4.z < 1.5) hf = SrgbToLinear(hf);
+                diffuse.rgb *= hf;
+            }
+            diffuse.a = 1.0;
+        }
+        else if (FurParams2.w < -50.0)
+        {
+            float2 furUV = input.UV0 * FurParams2.xy;
+            float4 n = FurCombo0.Sample(LinearSampler, furUV);
+            float hRgb = max(n.r, dot(n.rgb, float3(0.299, 0.587, 0.114)));
+            float height = (n.a >= 0.996 ? hRgb : n.a) * diffuse.a;
+            float tip = saturate(input.Tangent.w);
+            float3 nBw = mul(float4(input.Colour.rgb * 2.0 - 1.0, 0.0), World).xyz;
+            nBw = nBw / max(length(nBw), 0.0001);
+            float3 edgeN = input.Tangent.xyz + nBw;
+            float lenN = length(edgeN);
+            edgeN = lenN > 0.0001 ? edgeN / lenN : input.Tangent.xyz;
+            float3 toEye = normalize(CameraPos.xyz - input.WorldPos);
+            float sil = saturate((0.38 - abs(dot(edgeN, toEye))) / 0.30);
+            float alpha = height * sil * (1.0 - tip * tip * 0.8) * saturate(FurParams2.z);
+            clip(alpha - max(dither, 0.12));
+            furShade = lerp(saturate(FurParams.z), 1.0, tip);
+        }
+        else
+        {
+            float2 furUV = input.UV0 * FurParams2.xy;
+            float4 n = FurCombo0.Sample(LinearSampler, furUV);
+            float hRgb = max(n.r, dot(n.rgb, float3(0.299, 0.587, 0.114)));
+            float height = (n.a >= 0.996 ? hRgb : n.a) * diffuse.a;
+            float thr = FurParams.y + (1.0 - FurParams2.z) * 0.5;
+            clip(height - thr);
+            if (FurParams.y >= 0.0)
+            {
+                float shellT = FurParams.x <= 0.0 ? FurParams.x + 1.0 : FurParams.x;
+                float alpha = saturate((height - thr) * 6.0) * (1.0 - 0.6 * shellT * shellT);
+                clip(alpha - dither * 0.95);
+            }
+            if (FurParams.z > 0.0 && FurParams.z < 1.0) furShade = FurParams.z;
+        }
+    }
 
     float4 terrainBump = float4(0.5, 0.5, 1.0, 1.0);
     if (IsTerrain)
@@ -1128,7 +1164,7 @@ float4 PSMain(PS_Input input, bool isFrontFace : SV_IsFrontFace) : SV_TARGET
         float3 flatNorm = norm;
 
         float2 packed = hasBump
-            ? ((IsTerrain && HasLayerBump) ? terrainBump : BumpTex.Sample(LinearSampler, uv)).xy
+            ? ((IsTerrain && HasLayerBump) ? terrainBump : BumpTex.Sample(LinearSampler, grassFur ? input.UV0 * FurParams3.w : uv)).xy
             : float2(0.5, 0.5);
         packed += det.xy;
 
@@ -1533,8 +1569,7 @@ float4 PSMain(PS_Input input, bool isFrontFace : SV_IsFrontFace) : SV_TARGET
     else if (IsSelectedMesh == 8) c = PrecisionCast_U2(c, float3(1.00, 0.16, 0.72));
     }
 
-    if (FurParams2.w < -50.0) c *= lerp(saturate(FurParams.z), 1.0, saturate(input.Tangent.w));
-    else if (FurParams.z > 0.0 && FurParams.z < 1.0) c *= FurParams.z;
+    c *= furShade;
 
     return float4(c, alpha);
 }

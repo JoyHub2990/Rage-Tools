@@ -21,7 +21,9 @@ namespace RageLightEditor.Rendering
 
     public static class VertexDecoder
     {
-        public static MeshVertex[] Decode(VertexData vdata, ushort[] indices)
+        public static MeshVertex[] Decode(VertexData vdata, ushort[] indices) => Decode(vdata, indices, false);
+
+        public static MeshVertex[] Decode(VertexData vdata, ushort[] indices, bool uv2IntoColour1)
         {
             if (vdata?.VertexBytes == null || vdata.Info == null) return null;
 
@@ -54,6 +56,7 @@ namespace RageLightEditor.Rendering
             bool hasColour1 = slotOffset[5] >= 0;
             bool hasUV0 = slotOffset[6] >= 0;
             bool hasUV1 = slotOffset[7] >= 0;
+            bool hasUV2 = uv2IntoColour1 && slotOffset[8] >= 0;
 
             var verts = new MeshVertex[count];
             for (int v = 0; v < count; v++)
@@ -80,6 +83,7 @@ namespace RageLightEditor.Rendering
                 if (hasColour1) mv.Colour1 = ReadVector4(bytes, vbase + slotOffset[5], slotType[5]);
                 if (hasUV0) { var t = ReadVector4(bytes, vbase + slotOffset[6], slotType[6]); mv.UV0 = new Vector2(t.X, t.Y); }
                 if (hasUV1) { var t = ReadVector4(bytes, vbase + slotOffset[7], slotType[7]); mv.UV1 = new Vector2(t.X, t.Y); }
+                if (hasUV2) { var t = ReadVector4(bytes, vbase + slotOffset[8], slotType[8]); mv.Colour1 = new Vector4(t.X, t.Y, mv.Colour1.Z, mv.Colour1.W); }
 
                 verts[v] = mv;
             }

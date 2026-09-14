@@ -194,6 +194,17 @@ Paste elsewhere, **Copy paths**, **Convert** XML files to game files, and in edi
 one question (Ctrl+C and Delete do the same from the keyboard). Dragging a selected row out drops the
 whole selection on the desktop or into Explorer. Rename stays one item at a time.
 
+### Fur grass
+
+`grass_fur`, `grass_fur_mask` and `grass_fur_tnt` are drawn the way the game's own `grass_fur.fx`
+draws them: eight shells pushed out along the normals, one `furLayerParams.x` step per layer, each
+keeping the pixels of its height map (`fur_grass_rgba4_*`, two layers per texture) that beat that
+layer's clip, shaded root to tip by `furShadow03` / `furShadow47`, thinned by the vertex alpha and
+the mask variant's mask texture, multiplied by its area diffuse, and dithered away between the two
+`furAlphaDistance` distances. `grass_fur_lod` is the plain ground the game grows its runtime grass
+on and draws as such. Every fur texture and parameter is named in the material editor, and with
+FiveM live linking on, dragging them changes the lawn in the game as you drag.
+
 ### Light prop library
 
 The **Library** tab (bottom of the left panel) is a catalogue of every prop that has lights

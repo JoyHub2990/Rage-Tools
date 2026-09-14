@@ -29,7 +29,7 @@ namespace RageLightEditor.Rendering
                     var vdata = geom?.VertexData;
                     var indices = geom?.IndexBuffer?.Indices;
                     if (vdata?.VertexBytes == null || indices == null || indices.Length < 3) continue;
-                    var verts = VertexDecoder.Decode(vdata, indices);
+                    var verts = VertexDecoder.Decode(vdata, indices, FurMath_U20.IsMaskShader(geom.Shader?.Name.ToString()));
                     if (verts == null || verts.Length == 0) continue;
                     var pick = new Vector3[verts.Length];
                     for (int i = 0; i < verts.Length; i++) pick[i] = verts[i].Position;

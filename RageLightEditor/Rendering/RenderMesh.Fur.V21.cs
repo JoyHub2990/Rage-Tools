@@ -21,9 +21,9 @@ namespace RageLightEditor.Rendering
 
         public Vector4 FurShadow03, FurShadow47;
 
-        public Vector2 FurAlphaDistance = new Vector2(15f, 25f);
+        public Vector2 FurAlphaDistance = FurMath_U20.DefaultAlphaDistance;
 
-        public Vector4 FurUvScales = new Vector4(1.25f, 1f, 0.5f, 1f);
+        public Vector4 FurUvScales = FurMath_U20.DefaultUvScales;
 
         public readonly ShaderResourceView[] FurComboSRV = new ShaderResourceView[4];
     }

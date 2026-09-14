@@ -26,7 +26,7 @@ another PC, tick *game on another PC* before installing so the resource carries 
 | World, Edit Light | the selected vanilla prop's lights with its real placement: the game hides the original at that spot, puts a stand-in copy there and draws your lights on it (or at the world position when no model can stand in) | |
 | Time & weather | the game clock and weather follow the tool | |
 | Timecycle editor | edited cycle variables are pushed as a `ragetools_live` modifier at the tool's hour; edited interior modifiers are updated in the game by name, and the one on the Interior modifier tab is previewed on the player | |
-| Materials | with the RageToolsLive plugin installed in FiveM, shader values (specular, bump, emissive, colours...) are written into the loaded model as you drag them, for every copy of the prop; *Auto-apply materials* still saves and reloads for textures | textures |
+| Materials | with the RageToolsLive plugin installed in FiveM, shader values (specular, bump, emissive, colours, fur shells and shading...) are written into the loaded model as you drag them, for every copy of the prop; *Auto-apply materials* still saves and reloads for textures | textures |
 | Camera | game follows the editor (world streams around it), or editor follows the game | |
 | World props | select a prop and move, turn, delete or duplicate it: the game hides the original at its old place and shows a stand-in copy where you put it (`entity` messages) | scale, new archetypes not streamed by the server |
 | Everything else | | save into a resource's `stream` folder; that resource is restarted |

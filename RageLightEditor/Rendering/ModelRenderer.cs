@@ -377,7 +377,7 @@ namespace RageLightEditor.Rendering
 
             DecodedGeom_V66 pre = null;
             Precomputed_V66?.TryGetValue(geom, out pre);
-            var verts = pre?.Verts ?? VertexDecoder.Decode(vdata, indices);
+            var verts = pre?.Verts ?? VertexDecoder.Decode(vdata, indices, FurMath_U20.IsMaskShader(geom.Shader?.Name.ToString()));
             if (verts == null || verts.Length == 0) return null;
 
             var mesh = new RenderMesh { Transform = transform };
@@ -539,6 +539,7 @@ namespace RageLightEditor.Rendering
             mesh.DetailSRV = null;
             mesh.TintPaletteSRV = null; mesh.TintPaletteHeight = 0; mesh.TintMode = 0;
             mesh.IsMirror = false; mesh.DecalKind = 0;
+            ResetFurDefaults_U20(mesh);
             ApplyMaterial(mesh, mesh.Shader, mesh.EmbeddedDict);
         }
 
@@ -600,8 +601,6 @@ namespace RageLightEditor.Rendering
             1695474112,
             83630553,
             1238547107,
-            3333227093,
-            4256676773,
         };
 
         // CodeWalker's water shader list, both of its passes. The first six are its WaterBatches
@@ -706,6 +705,7 @@ namespace RageLightEditor.Rendering
             if (sps == 3053856997 || sps == 1471966282) { mesh.AlphaMode = GeomAlphaMode.Decal; mesh.DoubleSided = true; mesh.DecalKind = 7; return; }
             if (AdditiveSps.Contains(sps)) { mesh.AlphaMode = GeomAlphaMode.Additive; mesh.DoubleSided = true; return; }
             if (GlassSps.Contains(sps)) { mesh.AlphaMode = GeomAlphaMode.Glass; mesh.DoubleSided = true; return; }
+            if (IsGrassFurSps_U20(sps)) { mesh.AlphaMode = GeomAlphaMode.Cutout; mesh.DoubleSided = false; return; }
             if (CutoutSps.Contains(sps)) { mesh.AlphaMode = GeomAlphaMode.Cutout; mesh.DoubleSided = true; return; }
             if (BlendSps.Contains(sps)) { mesh.AlphaMode = GeomAlphaMode.Decal; mesh.DoubleSided = true; return; }
             if (sps == 1658580369u || sps == 129155404u)
@@ -808,6 +808,8 @@ namespace RageLightEditor.Rendering
         private void ApplyMaterial(RenderMesh mesh, ShaderFX shader, TextureDictionary embeddedDict)
         {
             for (int fi = 0; fi < 4; fi++) furCombo_V21[fi] = null;
+            furMask_U20 = null;
+            furHf_U20 = null;
             mesh.Shader = shader;
             mesh.EmbeddedDict = embeddedDict;
             if (shader == null) return;
@@ -867,6 +869,8 @@ namespace RageLightEditor.Rendering
                         case ShaderParamNames.ComboHeightSamplerFur23: furCombo_V21[1] = tb; break;
                         case ShaderParamNames.ComboHeightSamplerFur45: furCombo_V21[2] = tb; break;
                         case ShaderParamNames.ComboHeightSamplerFur67: furCombo_V21[3] = tb; break;
+                        case ShaderParamNames.FurMaskSampler: furMask_U20 = tb; break;
+                        case ShaderParamNames.DiffuseHfSampler: furHf_U20 = tb; break;
                         case ShaderParamNames.TintPaletteSampler:
                         case ShaderParamNames.TextureSamplerDiffPal:
                             tintPal = tintPal ?? tb; break;

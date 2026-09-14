@@ -150,6 +150,8 @@ namespace RageLightEditor.Rendering
         public Vector4 L2Params;
         public Vector4 FurParams;
         public Vector4 FurParams2;
+        public Vector4 FurParams3;
+        public Vector4 FurParams4;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = MaxPerMeshLights)]
         public uint[] MeshLightIndices;
 
@@ -809,6 +811,7 @@ namespace RageLightEditor.Rendering
 
             float furBase = 0.0f;
             float furFade = 0.0f;
+            bool grassFur = mesh.IsFur && !mesh.IsPedFur_V38;
             if (mesh.IsFur)
             {
                 furFade = FurFade_V21(mesh, frameEye_V21);
@@ -865,12 +868,14 @@ namespace RageLightEditor.Rendering
                 ov.FurParams = new Vector4(-1.0f, -1.0f, 1.0f, mesh.FurLayerParams.X);
                 ov.FurParams2 = new Vector4(mesh.FurUvScales.X, mesh.FurUvScales.Y, 1.0f, -1.0f);
             }
+            else if (grassFur) SetGrassFurVars_U20(mesh, ref ov, 0, false);
             objectCB.Update(context, ref ov);
 
             context.PixelShader.SetShaderResource(0, mesh.DiffuseSRV);
             context.PixelShader.SetShaderResource(1, mesh.BumpSRV);
             context.PixelShader.SetShaderResource(2, mesh.SpecSRV);
             context.PixelShader.SetShaderResource(11, mesh.DetailSRV);
+            if (grassFur) BindGrassFurTextures_U20(context, mesh, true);
 
             if (mesh.IsTerrain)
             {
@@ -899,7 +904,9 @@ namespace RageLightEditor.Rendering
 
             if (meshLightRest_U10.Count > 0 && CanBatchLights_U10(mesh)) DrawLightBatches_U10(context, mesh, ref ov);
 
-            if (furFade > 0.0f) DrawFurShells_V21(context, mesh, ref ov, furFade);
+            if (furFade > 0.0f && grassFur) DrawGrassFurShells_U20(context, mesh, ref ov);
+            else if (furFade > 0.0f) DrawFurShells_V21(context, mesh, ref ov, furFade);
+            else if (grassFur) BindGrassFurTextures_U20(context, mesh, false);
         }
 
         public void Dispose()

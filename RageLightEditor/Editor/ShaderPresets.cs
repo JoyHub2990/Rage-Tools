@@ -281,6 +281,7 @@ namespace RageLightEditor.Editor
             else t.Bucket = 0;
 
             if (PedFurParams_V38(n, t)) return t;
+            if (GrassFurParams_U20(n, t)) return t;
 
             bool terrain4 = false; TerrainParams_R4(n, t, ref terrain4);
             if (!terrain4) t.Params.Add(new PresetParam(ShaderParamNames.DiffuseSampler));

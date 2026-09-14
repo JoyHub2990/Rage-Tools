@@ -43,7 +43,7 @@ namespace RageLightEditor.Editor
         public int Order;
     }
 
-    public static class MaterialDefs
+    public static partial class MaterialDefs
     {
         private static readonly Dictionary<uint, MatParamInfo> paramsByHash = new Dictionary<uint, MatParamInfo>();
         private static readonly Dictionary<uint, MatTexInfo> texByHash = new Dictionary<uint, MatTexInfo>();
@@ -248,6 +248,7 @@ namespace RageLightEditor.Editor
             AddParam(ShaderParamNames.StubbleControl, "Stubble", MatParamKind.Float2, 0f, 8f,
                 new Vector4(2f, 0.6f, 0, 0),
                 "Short-hair control for the ped shaders that use it: tile count and strength.");
+            AddFurDefs_U20();
         }
 
         private static void AddTex(ShaderParamNames n, MatTexRole role, int order, string label, string tip)

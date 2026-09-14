@@ -20,14 +20,24 @@ namespace RageLightEditor
                 if (scene == null || scene.Files.Count == 0) return;
                 if (++furShotSettle_V21 < 10) return;
                 furShotStage_V21 = 2;
-                camera.Target = new SharpDX.Vector3(0, 0, 0.3f);
-                camera.Distance = 6.0f;
+                var target = new SharpDX.Vector3(0, 0, 0.3f);
+                foreach (var fm in scene.AllMeshes)
+                {
+                    if (fm == null || !fm.IsFur) continue;
+                    target = fm.WorldSphere.Center + new SharpDX.Vector3(0, 0, 0.3f);
+                    break;
+                }
+                float dist = 6.0f;
+                var distEnv = Environment.GetEnvironmentVariable("RLE_FURSHOT_DIST");
+                if (!string.IsNullOrWhiteSpace(distEnv) && float.TryParse(distEnv, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var fd) && fd > 0.0f) dist = fd;
+                camera.Target = target;
+                camera.Distance = dist;
                 camera.Pitch = 0.22f;
                 camera.Yaw = 0.8f;
                 camera.SnapSmoothing();
                 camera.Update();
                 screenshotFrames = Math.Max(screenshotFrames, 12);
-                Console.WriteLine("FURSHOT camera moved onto the lawn (6 m, grazing)");
+                Console.WriteLine($"FURSHOT camera moved onto the lawn ({dist:0.#} m from {target}, grazing)");
                 return;
             }
             var c = gameFiles?.Cache;
